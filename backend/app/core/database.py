@@ -19,7 +19,7 @@ def _get_env(name: str) -> str | None:
     return value or None
 
 
-URL_SUPABASE = _get_env("URL_SUPABASE")
+URL_SUPABASE = _get_env("URL_SUPABASE") or _get_env("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = _get_env("SUPABASE_SERVICE_KEY") or _get_env("SUPABASE_KEY")
 
 
