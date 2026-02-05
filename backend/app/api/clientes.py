@@ -40,6 +40,23 @@ def listar_clientes(
     )
 
 
+@router.get("/lookup")
+def lookup_clientes(
+    ids: str = Query(..., description="Lista de clienteid separados por coma"),
+    service: ClientesService = Depends(get_clientes_service),
+):
+    id_list = []
+    for raw in ids.split(","):
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            id_list.append(int(raw))
+        except ValueError:
+            continue
+    return service.lookup_clientes(id_list)
+
+
 @router.get("/catalogos", response_model=CatalogosResponse)
 def catalogos(supabase=Depends(get_supabase)):
     def items(table: str, id_field: str, label_field: str, where=None, order_field=None):

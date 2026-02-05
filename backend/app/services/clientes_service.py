@@ -1,6 +1,6 @@
 # backend/app/services/clientes_service.py
 import math
-from typing import Optional
+from typing import Optional, List
 
 from backend.app.schemas.cliente import (
     ClienteListResponse,
@@ -137,3 +137,6 @@ class ClientesService:
         if not ok:
             raise ValueError("No se pudo actualizar el cliente")
         return {"clienteid": clienteid, "mensaje": "Cliente actualizado"}
+
+    def lookup_clientes(self, ids: List[int]) -> list[dict]:
+        return self.repo.lookup_clientes(ids)

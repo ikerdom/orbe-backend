@@ -14,6 +14,7 @@ from backend.app.schemas.pedido import (
     PedidoUpdateIn,
     PedidoLineaCreate,
     PedidoCatalogos,
+    PedidoIncidenciaIn,
 )
 from backend.app.services.pedidos_service import PedidosService
 
@@ -28,26 +29,24 @@ def get_service(supabase=Depends(get_supabase)) -> PedidosService:
 @router.get("", response_model=PedidoListResponse)
 def listar_pedidos(
     q: Optional[str] = Query(None),
+    clienteid: Optional[int] = Query(None),
     estadoid: Optional[int] = Query(None),
-    tipo_pedidoid: Optional[int] = Query(None),
-    procedencia_pedidoid: Optional[int] = Query(None),
-    trabajadorid: Optional[int] = Query(None),
+    forma_pagoid: Optional[int] = Query(None),
+    pedido_procedencia: Optional[str] = Query(None),
     fecha_desde: Optional[str] = Query(None),
     fecha_hasta: Optional[str] = Query(None),
-    devoluciones: bool = Query(False),
     page: int = Query(1, ge=1),
     page_size: int = Query(30, ge=1, le=100),
     service: PedidosService = Depends(get_service),
 ):
     filtros = {
         "q": q,
+        "clienteid": clienteid,
         "estadoid": estadoid,
-        "tipo_pedidoid": tipo_pedidoid,
-        "procedencia_pedidoid": procedencia_pedidoid,
-        "trabajadorid": trabajadorid,
+        "forma_pagoid": forma_pagoid,
+        "pedido_procedencia": pedido_procedencia,
         "fecha_desde": fecha_desde,
         "fecha_hasta": fecha_hasta,
-        "tipo_devolucion": devoluciones,
     }
     return service.listar(filtros, page, page_size)
 
@@ -132,3 +131,20 @@ def crear_observacion(
 ):
     service.crear_observacion(pedidoid, body, usuario=body.usuario or "sistema")
     return {"ok": True}
+
+
+@router.get("/{pedidoid}/incidencias")
+def listar_incidencias(pedidoid: int, service: PedidosService = Depends(get_service)):
+    return service.incidencias(pedidoid)
+
+
+@router.post("/{pedidoid}/incidencias")
+def crear_incidencia(
+    pedidoid: int,
+    body: PedidoIncidenciaIn,
+    service: PedidosService = Depends(get_service),
+):
+    try:
+        return service.crear_incidencia(pedidoid, body)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))

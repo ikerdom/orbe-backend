@@ -125,3 +125,14 @@ class ClientesRepository:
             return False
         self.supabase.table("cliente").update(data).eq("clienteid", clienteid).execute()
         return True
+
+    def lookup_clientes(self, ids: List[int]) -> List[dict]:
+        if not ids:
+            return []
+        res = (
+            self.supabase.table("cliente")
+            .select("clienteid, razonsocial, nombre")
+            .in_("clienteid", ids)
+            .execute()
+        )
+        return res.data or []

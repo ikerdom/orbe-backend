@@ -7,11 +7,16 @@ from backend.app.api import (
     cliente_contacto,
     cliente_observacion,
     cliente_direccion,
+    cliente_documento,
+    cliente_facturacion,
+    cliente_albaran,
     crm_actuacion,
     presupuestos,
     tarifas,
     pedidos,
     crm_acciones,
+    crm_catalogos,
+    crm_alertas,
 )
 
 app = FastAPI(title="ERP EnteNova")
@@ -23,11 +28,16 @@ app.include_router(productos.router)
 app.include_router(cliente_contacto.router)
 app.include_router(cliente_observacion.router)
 app.include_router(cliente_direccion.router)
+app.include_router(cliente_documento.router)
+app.include_router(cliente_facturacion.router)
+app.include_router(cliente_albaran.router)
 app.include_router(crm_actuacion.router)
 app.include_router(presupuestos.router)
 app.include_router(tarifas.router)
 app.include_router(pedidos.router)
 app.include_router(crm_acciones.router)
+app.include_router(crm_catalogos.router)
+app.include_router(crm_alertas.router)
 
 @app.get("/health")
 def health():

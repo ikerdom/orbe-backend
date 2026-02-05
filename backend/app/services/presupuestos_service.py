@@ -316,20 +316,24 @@ class PresupuestosService:
 
         existing = self.repo.pedido_por_presupuesto(presupuestoid)
         if existing:
-            return {"pedidoid": existing["pedidoid"], "numero": existing["numero"], "ya_existia": True}
+            return {
+                "pedidoid": existing.get("pedido_id"),
+                "numero": existing.get("referencia_cliente") or f"PRES-{presupuestoid}",
+                "ya_existia": True,
+            }
 
         hoy = datetime.now().date()
         numero_pedido = f"PED-{hoy.year}-{9000 + presupuestoid:04d}"
+        ref_pres = f"PRES-{presupuestoid}"
 
         pedido_row = {
-            "numero": numero_pedido,
             "clienteid": pres.get("clienteid"),
-            "trabajadorid": pres.get("trabajadorid"),
+            "agente_comercial_origen_id": pres.get("trabajadorid"),
             "fecha_pedido": hoy.isoformat(),
-            "estado_pedidoid": 1,  # Borrador
-            "presupuesto_origenid": presupuestoid,
-            "tipo_pedidoid": 1,
-            "procedencia_pedidoid": 2,
+            "pedido_estadoid": 1,  # Borrador
+            "pedido_procedencia": "presupuesto",
+            "referencia_cliente": ref_pres,
+            "observaciones": f"Creado desde presupuesto {presupuestoid} ({numero_pedido})",
         }
         pedido = self.repo.crear_pedido(pedido_row)
         if not pedido:
@@ -337,17 +341,21 @@ class PresupuestosService:
 
         lineas = self.repo.listar_lineas(presupuestoid)
         for ln in lineas:
+            precio = float(ln.get("precio_unitario") or 0.0)
+            cantidad = float(ln.get("cantidad") or 0.0)
+            descuento_pct = float(ln.get("descuento_pct") or 0.0)
+            precio_tras_dto = precio * (1 - (descuento_pct / 100.0))
+            subtotal = precio_tras_dto * cantidad
             self.repo.insertar_linea_pedido(
                 {
-                    "pedidoid": pedido["pedidoid"],
-                    "productoid": ln.productoid,
-                    "nombre_producto": ln.descripcion,
-                    "cantidad": ln.cantidad,
-                    "precio_unitario": ln.precio_unitario,
-                    "descuento_pct": ln.descuento_pct or 0,
-                    "iva_pct": ln.iva_pct or 21,
-                    "importe_base": ln.importe_base or 0,
-                    "importe_total_linea": ln.importe_total_linea or 0,
+                    "pedido_id": pedido["pedido_id"],
+                    "producto_id": ln.get("producto_id"),
+                    "nombre_producto": ln.get("descripcion"),
+                    "cantidad": cantidad,
+                    "precio": precio,
+                    "descuento_pct": descuento_pct,
+                    "precio_tras_dto": round(precio_tras_dto, 4),
+                    "subtotal": round(subtotal, 4),
                 }
             )
 
@@ -356,8 +364,8 @@ class PresupuestosService:
             self.repo.marcar_presupuesto_estado(presupuestoid, estado_convertido, editable=False)
 
         return {
-            "pedidoid": pedido["pedidoid"],
-            "numero": pedido["numero"],
+            "pedidoid": pedido["pedido_id"],
+            "numero": numero_pedido,
             "ya_existia": False,
         }
 

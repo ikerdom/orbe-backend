@@ -7,6 +7,10 @@ class CrmAccionBase(BaseModel):
     titulo: str
     descripcion: Optional[str] = None
     observaciones: Optional[str] = None
+    resultado: Optional[str] = None
+    hora_inicio: Optional[datetime] = None
+    hora_fin: Optional[datetime] = None
+    duracion_segundos: Optional[int] = None
 
     crm_actuacion_estadoid: Optional[int] = None
     crm_actuacion_tipoid: Optional[int] = None
@@ -31,6 +35,10 @@ class CrmAccionUpdate(BaseModel):
     titulo: Optional[str] = None
     descripcion: Optional[str] = None
     observaciones: Optional[str] = None
+    resultado: Optional[str] = None
+    hora_inicio: Optional[datetime] = None
+    hora_fin: Optional[datetime] = None
+    duracion_segundos: Optional[int] = None
 
     crm_actuacion_estadoid: Optional[int] = None
     crm_actuacion_tipoid: Optional[int] = None
@@ -49,6 +57,7 @@ class CrmAccionUpdate(BaseModel):
 
 class CrmAccionOut(CrmAccionBase):
     crm_actuacionid: int
+    cliente_nombre: Optional[str] = None
 
 
 class CrmAccionList(BaseModel):

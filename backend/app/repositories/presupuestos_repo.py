@@ -229,10 +229,11 @@ class PresupuestosRepository:
         return [r.get("numero") for r in (res.data or []) if r.get("numero")]
 
     def pedido_por_presupuesto(self, presupuestoid: int) -> Optional[dict]:
+        ref = f"PRES-{presupuestoid}"
         res = (
             self.supabase.table("pedido")
-            .select("pedidoid, numero, estado_pedidoid")
-            .eq("presupuesto_origenid", presupuestoid)
+            .select("pedido_id, pedido_estadoid, referencia_cliente")
+            .eq("referencia_cliente", ref)
             .limit(1)
             .execute()
         )
@@ -244,7 +245,7 @@ class PresupuestosRepository:
         return (res.data or [None])[0]
 
     def insertar_linea_pedido(self, data: dict):
-        self.supabase.table("pedido_detalle").insert(data).execute()
+        self.supabase.table("pedido_linea").insert(data).execute()
 
     def marcar_presupuesto_estado(self, presupuestoid: int, estadoid: int, editable: Optional[bool] = None):
         update_data: Dict[str, object] = {"estado_presupuestoid": estadoid}

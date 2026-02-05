@@ -1,5 +1,4 @@
 from postgrest.exceptions import APIError
-# backend/app/repositories/pedidos_repo.py
 from typing import List, Optional, Tuple
 
 
@@ -13,28 +12,24 @@ class PedidosRepository:
     def listar(self, filtros: dict, page: int, page_size: int) -> Tuple[List[dict], int]:
         q = self.supabase.table("pedido").select("*", count="exact")
 
-        if filtros.get("tipo_devolucion"):
-            tipo_dev = (
-                self.supabase.table("pedido_tipo")
-                .select("tipo_pedidoid")
-                .eq("nombre", "DevoluciÃ³n")
-                .maybe_single()
-                .execute()
-                .data
-            )
-            if tipo_dev:
-                q = q.eq("tipo_pedidoid", tipo_dev.get("tipo_pedidoid"))
-
         if filtros.get("q"):
-            q = q.or_(f"numero.ilike.%{filtros['q']}%,referencia_cliente.ilike.%{filtros['q']}%")
+            term = str(filtros["q"]).strip()
+            conds = [
+                f"cliente.ilike.%{term}%",
+                f"referencia_cliente.ilike.%{term}%",
+                f"cif_cliente.ilike.%{term}%",
+            ]
+            if term.isdigit():
+                conds.extend([f"pedido_id.eq.{term}", f"clienteid.eq.{term}"])
+            q = q.or_(",".join(conds))
+        if filtros.get("clienteid"):
+            q = q.eq("clienteid", filtros["clienteid"])
         if filtros.get("estadoid"):
-            q = q.eq("estado_pedidoid", filtros["estadoid"])
-        if filtros.get("tipo_pedidoid"):
-            q = q.eq("tipo_pedidoid", filtros["tipo_pedidoid"])
-        if filtros.get("procedencia_pedidoid"):
-            q = q.eq("procedencia_pedidoid", filtros["procedencia_pedidoid"])
-        if filtros.get("trabajadorid"):
-            q = q.eq("trabajadorid", filtros["trabajadorid"])
+            q = q.eq("pedido_estadoid", filtros["estadoid"])
+        if filtros.get("forma_pagoid"):
+            q = q.eq("forma_pagoid", filtros["forma_pagoid"])
+        if filtros.get("pedido_procedencia"):
+            q = q.eq("pedido_procedencia", filtros["pedido_procedencia"])
         if filtros.get("fecha_desde"):
             q = q.gte("fecha_pedido", filtros["fecha_desde"])
         if filtros.get("fecha_hasta"):
@@ -44,6 +39,7 @@ class PedidosRepository:
         end = start + page_size - 1
         try:
             res = q.order("fecha_pedido", desc=True).range(start, end).execute()
+            return res.data or [], res.count or 0
         except APIError as e:
             if getattr(e, "args", None) and isinstance(e.args[0], dict) and e.args[0].get("code") == "PGRST205":
                 return [], 0
@@ -56,7 +52,7 @@ class PedidosRepository:
         res = (
             self.supabase.table("pedido")
             .select("*")
-            .eq("pedidoid", pedidoid)
+            .eq("pedido_id", pedidoid)
             .maybe_single()
             .execute()
         )
@@ -67,71 +63,102 @@ class PedidosRepository:
         return (res.data or [None])[0]
 
     def actualizar(self, pedidoid: int, data: dict):
-        self.supabase.table("pedido").update(data).eq("pedidoid", pedidoid).execute()
+        self.supabase.table("pedido").update(data).eq("pedido_id", pedidoid).execute()
 
     def borrar(self, pedidoid: int):
-        self.supabase.table("pedido").delete().eq("pedidoid", pedidoid).execute()
+        self.supabase.table("pedido").delete().eq("pedido_id", pedidoid).execute()
 
     # -----------------------------
-    # LÃ­neas
+    # Líneas
     # -----------------------------
     def lineas(self, pedidoid: int) -> List[dict]:
         res = (
-            self.supabase.table("pedido_detalle")
-            .select("pedido_detalleid, productoid, nombre_producto, cantidad, precio_unitario, descuento_pct, importe_total_linea")
-            .eq("pedidoid", pedidoid)
-            .order("pedido_detalleid")
+            self.supabase.table("pedido_linea")
+            .select(
+                "pedido_linea_id, pedido_id, pedido_estadoid, producto_id, referencia, nombre_producto, cantidad, "
+                "precio, descuento_pct, precio_tras_dto, subtotal, tasa_impuesto, cuota_impuesto, "
+                "tasa_recargo, cuota_recargo, tasa_gastosenvio, cuota_gastosenvio, fecha_limite, "
+                "fecha_completado, producto_externo, producto_observacion"
+            )
+            .eq("pedido_id", pedidoid)
+            .order("pedido_linea_id")
             .execute()
         )
         return res.data or []
 
     def insertar_linea(self, data: dict) -> int:
-        res = self.supabase.table("pedido_detalle").insert(data).execute()
-        return res.data[0]["pedido_detalleid"]
+        res = self.supabase.table("pedido_linea").insert(data).execute()
+        return res.data[0]["pedido_linea_id"]
 
     def borrar_linea(self, detalleid: int):
-        self.supabase.table("pedido_detalle").delete().eq("pedido_detalleid", detalleid).execute()
+        self.supabase.table("pedido_linea").delete().eq("pedido_linea_id", detalleid).execute()
 
     # -----------------------------
     # Totales
     # -----------------------------
     def totales(self, pedidoid: int) -> Optional[dict]:
-        try:
-            res = (
-                self.supabase.table("pedido_totales")
-                .select("*")
-                .eq("pedidoid", pedidoid)
-                .maybe_single()
-                .execute()
+        res = (
+            self.supabase.table("pedido")
+            .select(
+                "pedido_id,total_base_imponible,total_impuestos,total_recargos,total_base_gastos_envios,total_descuentos,total"
             )
-            return getattr(res, "data", None) or None
-        except Exception:
-            return None
+            .eq("pedido_id", pedidoid)
+            .maybe_single()
+            .execute()
+        )
+        return res.data or None
 
     def actualizar_totales(self, pedidoid: int, payload: dict):
-        exists = self.totales(pedidoid)
-        if exists:
-            self.supabase.table("pedido_totales").update(payload).eq("pedidoid", pedidoid).execute()
-        else:
-            payload["pedidoid"] = pedidoid
-            self.supabase.table("pedido_totales").insert(payload).execute()
+        self.supabase.table("pedido").update(payload).eq("pedido_id", pedidoid).execute()
 
     # -----------------------------
     # Observaciones
     # -----------------------------
     def observaciones(self, pedidoid: int) -> List[dict]:
-        res = (
-            self.supabase.table("pedido_observacion")
-            .select("comentario, tipo, fecha, usuario")
-            .eq("pedidoid", pedidoid)
-            .order("fecha", desc=True)
-            .execute()
-        )
-        return res.data or []
+        ped = self.obtener(pedidoid)
+        if not ped:
+            return []
+        return [ped]
 
     def crear_observacion(self, pedidoid: int, data: dict):
-        data["pedidoid"] = pedidoid
-        self.supabase.table("pedido_observacion").insert(data).execute()
+        self.actualizar(pedidoid, data)
+
+    # -----------------------------
+    # Incidencias
+    # -----------------------------
+    def incidencias(self, pedidoid: int) -> List[dict]:
+        for field in ("pedido_id", "pedidoid"):
+            try:
+                res = (
+                    self.supabase.table("pedido_incidencia")
+                    .select("*")
+                    .eq(field, pedidoid)
+                    .order("fecha", desc=True)
+                    .execute()
+                )
+                return res.data or []
+            except APIError as e:
+                if getattr(e, "args", None) and isinstance(e.args[0], dict) and e.args[0].get("code") in ("PGRST204", "PGRST205"):
+                    continue
+                raise
+            except Exception:
+                continue
+        return []
+
+    def crear_incidencia(self, pedidoid: int, data: dict) -> dict:
+        for field in ("pedido_id", "pedidoid"):
+            try:
+                payload = dict(data)
+                payload[field] = pedidoid
+                res = self.supabase.table("pedido_incidencia").insert(payload).execute()
+                return (res.data or [None])[0] or {}
+            except APIError as e:
+                if getattr(e, "args", None) and isinstance(e.args[0], dict) and e.args[0].get("code") in ("PGRST204", "PGRST205"):
+                    continue
+                raise
+            except Exception:
+                continue
+        return {}
 
     # -----------------------------
     # Catálogos
