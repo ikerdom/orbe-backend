@@ -72,8 +72,10 @@ class PresupuestosRepository:
         try:
             res = query.range(start, end).execute()
             return res.data or [], res.count or 0
+        except APIError as e:
             if getattr(e, "args", None) and isinstance(e.args[0], dict) and e.args[0].get("code") == "PGRST205":
                 return [], 0
+            raise
 
     def top_clientes(self, limit: int = 5) -> List[dict]:
         # Agrega en memoria para evitar dependencias de SQL/Views
