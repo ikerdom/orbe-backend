@@ -25,6 +25,12 @@ class PresupuestosRepository:
         estadoid: Optional[int],
         clienteid: Optional[int],
         ambito_impuesto: Optional[str],
+        fecha_desde: Optional[str],
+        fecha_hasta: Optional[str],
+        seccion: Optional[str],
+        seccion_id: Optional[int],
+        total_min: Optional[float],
+        total_max: Optional[float],
         page: int,
         page_size: int,
         ordenar_por: str,
@@ -43,6 +49,19 @@ class PresupuestosRepository:
         if ambito_impuesto:
             query = query.eq("ambito_impuesto", ambito_impuesto)
 
+        if fecha_desde:
+            query = query.gte("fecha_presupuesto", fecha_desde)
+        if fecha_hasta:
+            query = query.lte("fecha_presupuesto", fecha_hasta)
+        if seccion:
+            query = query.ilike("seccion", f"%{seccion}%")
+        if seccion_id:
+            query = query.eq("seccion_id", seccion_id)
+        if total_min is not None:
+            query = query.gte("total_estimada", total_min)
+        if total_max is not None:
+            query = query.lte("total_estimada", total_max)
+
         if ordenar_por == "fecha_presupuesto":
             query = query.order("fecha_presupuesto", desc=True)
         else:
@@ -52,7 +71,36 @@ class PresupuestosRepository:
         end = start + page_size - 1
         try:
             res = query.range(start, end).execute()
-            return res.data or [], res.count or 0
+        return res.data or [], res.count or 0
+
+    def top_clientes(self, limit: int = 5) -> List[dict]:
+        # Agrega en memoria para evitar dependencias de SQL/Views
+        counts: Dict[int, dict] = {}
+        page_size = 1000
+        page = 0
+        while True:
+            start = page * page_size
+            end = start + page_size - 1
+            res = (
+                self.supabase.table("presupuesto")
+                .select("clienteid, cliente:cliente(razonsocial,nombre)")
+                .range(start, end)
+                .execute()
+            )
+            rows = res.data or []
+            if not rows:
+                break
+            for r in rows:
+                cid = r.get("clienteid")
+                if not cid:
+                    continue
+                if cid not in counts:
+                    label = (r.get("cliente") or {}).get("razonsocial") or (r.get("cliente") or {}).get("nombre") or str(cid)
+                    counts[cid] = {"clienteid": cid, "label": label, "count": 0}
+                counts[cid]["count"] += 1
+            page += 1
+        top = sorted(counts.values(), key=lambda x: x["count"], reverse=True)
+        return top[: max(1, int(limit))]
         except APIError as e:
             if getattr(e, "args", None) and isinstance(e.args[0], dict) and e.args[0].get("code") == "PGRST205":
                 return [], 0

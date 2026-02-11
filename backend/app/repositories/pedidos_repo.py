@@ -30,15 +30,33 @@ class PedidosRepository:
             q = q.eq("forma_pagoid", filtros["forma_pagoid"])
         if filtros.get("pedido_procedencia"):
             q = q.eq("pedido_procedencia", filtros["pedido_procedencia"])
+        if filtros.get("pedido_estado_nombre"):
+            q = q.ilike("pedido_estado_nombre", f"%{filtros['pedido_estado_nombre']}%")
+        if filtros.get("tipodoc"):
+            q = q.ilike("tipodoc", f"%{filtros['tipodoc']}%")
+        if filtros.get("pedido_tipo_documentoid"):
+            q = q.eq("pedido_tipo_documentoid", filtros["pedido_tipo_documentoid"])
+        if filtros.get("referencia_cliente"):
+            q = q.ilike("referencia_cliente", f"%{filtros['referencia_cliente']}%")
+        if filtros.get("cif_cliente"):
+            q = q.ilike("cif_cliente", f"%{filtros['cif_cliente']}%")
+        if filtros.get("total_min") is not None:
+            q = q.gte("total", filtros["total_min"])
+        if filtros.get("total_max") is not None:
+            q = q.lte("total", filtros["total_max"])
         if filtros.get("fecha_desde"):
             q = q.gte("fecha_pedido", filtros["fecha_desde"])
         if filtros.get("fecha_hasta"):
             q = q.lte("fecha_pedido", filtros["fecha_hasta"])
+        if filtros.get("fecha_completado_desde"):
+            q = q.gte("fecha_completado", filtros["fecha_completado_desde"])
+        if filtros.get("fecha_completado_hasta"):
+            q = q.lte("fecha_completado", filtros["fecha_completado_hasta"])
 
         start = (page - 1) * page_size
         end = start + page_size - 1
         try:
-            res = q.order("fecha_pedido", desc=True).range(start, end).execute()
+            res = q.order("created_at", desc=True).range(start, end).execute()
             return res.data or [], res.count or 0
         except APIError as e:
             if getattr(e, "args", None) and isinstance(e.args[0], dict) and e.args[0].get("code") == "PGRST205":

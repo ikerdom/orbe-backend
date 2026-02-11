@@ -18,6 +18,11 @@ class ProductosService:
     def listar(
         self,
         q: Optional[str],
+        titulo: Optional[str],
+        idproducto: Optional[str],
+        idproductoreferencia: Optional[str],
+        isbn: Optional[str],
+        ean: Optional[str],
         familiaid: Optional[int],
         tipoid: Optional[int],
         categoriaid: Optional[int],
@@ -28,6 +33,11 @@ class ProductosService:
     ) -> ProductoListResponse:
         raw, total = self.repo.get_productos(
             q=q,
+            titulo=titulo,
+            idproducto=idproducto,
+            idproductoreferencia=idproductoreferencia,
+            isbn=isbn,
+            ean=ean,
             familiaid=familiaid,
             tipoid=tipoid,
             categoriaid=categoriaid,
@@ -114,4 +124,11 @@ class ProductosService:
             familia=fam_map.get(p.get("producto_familiaid")),
             tipo=tipo_map.get(p.get("producto_tipoid")),
             categoria=cat_map.get(p.get("producto_categoriaid")),
+            categoria_raiz=p.get("categoria_raiz"),
+            cuerpo_certificado=p.get("cuerpo_certificado"),
+            proveedor=p.get("proveedor"),
+            autor_nombre=p.get("autor_nombre"),
+            autor_apellidos=p.get("autor_apellidos"),
+            total_paginas=p.get("total_paginas"),
+            tipo_producto=p.get("tipo_producto"),
         )

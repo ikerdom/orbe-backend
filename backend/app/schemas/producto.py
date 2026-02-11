@@ -59,3 +59,10 @@ class ProductoDetail(BaseModel):
     familia: Optional[str] = None
     tipo: Optional[str] = None
     categoria: Optional[str] = None
+    categoria_raiz: Optional[str] = None
+    cuerpo_certificado: Optional[str] = None
+    proveedor: Optional[str] = None
+    autor_nombre: Optional[str] = None
+    autor_apellidos: Optional[str] = None
+    total_paginas: Optional[int] = None
+    tipo_producto: Optional[str] = None

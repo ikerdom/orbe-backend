@@ -32,12 +32,32 @@ def listar_presupuestos(
     estadoid: Optional[int] = Query(None),
     clienteid: Optional[int] = Query(None),
     ambito_impuesto: Optional[str] = Query(None),
+    fecha_desde: Optional[str] = Query(None),
+    fecha_hasta: Optional[str] = Query(None),
+    seccion: Optional[str] = Query(None),
+    seccion_id: Optional[int] = Query(None),
+    total_min: Optional[float] = Query(None),
+    total_max: Optional[float] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(30, ge=1, le=100),
     ordenar_por: str = Query("creado_en", pattern="^(creado_en|fecha_presupuesto)$"),
     service: PresupuestosService = Depends(get_service),
 ):
-    return service.listar(q, estadoid, clienteid, ambito_impuesto, page, page_size, ordenar_por)
+    return service.listar(
+        q,
+        estadoid,
+        clienteid,
+        ambito_impuesto,
+        fecha_desde,
+        fecha_hasta,
+        seccion,
+        seccion_id,
+        total_min,
+        total_max,
+        page,
+        page_size,
+        ordenar_por,
+    )
 
 
 @router.get("/catalogos", response_model=PresupuestoCatalogos)
@@ -95,6 +115,11 @@ def catalogos_presupuesto(supabase=Depends(get_supabase)):
             ]
         ),
     )
+
+
+@router.get("/top-clientes")
+def top_clientes(limit: int = Query(5, ge=1, le=20), service: PresupuestosService = Depends(get_service)):
+    return {"data": service.top_clientes(limit=limit)}
 
 
 @router.get("/{presupuestoid}", response_model=PresupuestoOut)

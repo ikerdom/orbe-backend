@@ -8,6 +8,11 @@ class ProductosRepository:
     def get_productos(
         self,
         q: Optional[str],
+        titulo: Optional[str],
+        idproducto: Optional[str],
+        idproductoreferencia: Optional[str],
+        isbn: Optional[str],
+        ean: Optional[str],
         familiaid: Optional[int],
         tipoid: Optional[int],
         categoriaid: Optional[int],
@@ -34,6 +39,25 @@ class ProductosRepository:
                 )
             )
 
+        if titulo:
+            query = query.ilike("titulo_automatico", f"%{titulo}%")
+        if idproducto:
+            if str(idproducto).isdigit():
+                query = query.or_(f"idproducto.ilike.%{idproducto}%,idproducto_num.eq.{idproducto}")
+            else:
+                query = query.ilike("idproducto", f"%{idproducto}%")
+        if idproductoreferencia:
+            if str(idproductoreferencia).isdigit():
+                query = query.or_(
+                    f"idproductoreferencia.ilike.%{idproductoreferencia}%,idproductoreferencia_num.eq.{idproductoreferencia}"
+                )
+            else:
+                query = query.ilike("idproductoreferencia", f"%{idproductoreferencia}%")
+        if isbn:
+            query = query.ilike("isbn", f"%{isbn}%")
+        if ean:
+            query = query.ilike("ean", f"%{ean}%")
+
         if familiaid:
             query = query.eq("producto_familiaid", familiaid)
 
@@ -43,6 +67,15 @@ class ProductosRepository:
         if categoriaid:
             query = query.eq("producto_categoriaid", categoriaid)
 
+        allowed_sort = {
+            "titulo_automatico",
+            "idproducto",
+            "idproductoreferencia",
+            "isbn",
+            "ean",
+            "pvp",
+        }
+        sort_field = sort_field if sort_field in allowed_sort else "titulo_automatico"
         ascending = sort_dir.upper() == "ASC"
         query = query.order(sort_field, desc=not ascending)
 

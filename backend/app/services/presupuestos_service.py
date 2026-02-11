@@ -30,11 +30,31 @@ class PresupuestosService:
         estadoid: Optional[int],
         clienteid: Optional[int],
         ambito_impuesto: Optional[str],
+        fecha_desde: Optional[str],
+        fecha_hasta: Optional[str],
+        seccion: Optional[str],
+        seccion_id: Optional[int],
+        total_min: Optional[float],
+        total_max: Optional[float],
         page: int,
         page_size: int,
         ordenar_por: str,
     ) -> PresupuestoListResponse:
-        rows, total = self.repo.listar(q, estadoid, clienteid, ambito_impuesto, page, page_size, ordenar_por)
+        rows, total = self.repo.listar(
+            q,
+            estadoid,
+            clienteid,
+            ambito_impuesto,
+            fecha_desde,
+            fecha_hasta,
+            seccion,
+            seccion_id,
+            total_min,
+            total_max,
+            page,
+            page_size,
+            ordenar_por,
+        )
 
         ids = [
             r.get("presupuestoid") or r.get("presupuesto_id")
@@ -79,6 +99,9 @@ class PresupuestosService:
             page=page,
             page_size=page_size,
         )
+
+    def top_clientes(self, limit: int = 5) -> list[dict]:
+        return self.repo.top_clientes(limit=limit)
 
     def obtener(self, presupuestoid: int) -> PresupuestoOut:
         pres = self.repo.obtener(presupuestoid)

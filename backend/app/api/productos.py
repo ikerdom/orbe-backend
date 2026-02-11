@@ -22,6 +22,11 @@ def get_productos_service(supabase=Depends(get_supabase)) -> ProductosService:
 @router.get("", response_model=ProductoListResponse)
 def listar_productos(
     q: Optional[str] = Query(None),
+    titulo: Optional[str] = Query(None),
+    idproducto: Optional[str] = Query(None),
+    idproductoreferencia: Optional[str] = Query(None),
+    isbn: Optional[str] = Query(None),
+    ean: Optional[str] = Query(None),
     familiaid: Optional[int] = Query(None),
     tipoid: Optional[int] = Query(None),
     categoriaid: Optional[int] = Query(None),
@@ -33,6 +38,11 @@ def listar_productos(
 ):
     return service.listar(
         q=q,
+        titulo=titulo,
+        idproducto=idproducto,
+        idproductoreferencia=idproductoreferencia,
+        isbn=isbn,
+        ean=ean,
         familiaid=familiaid,
         tipoid=tipoid,
         categoriaid=categoriaid,
