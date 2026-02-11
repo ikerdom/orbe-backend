@@ -74,6 +74,11 @@ def catalogos_pedidos(service: PedidosService = Depends(get_service)):
     return service.catalogos()
 
 
+@router.get("/top-clientes")
+def top_clientes(limit: int = Query(5, ge=1, le=20), service: PedidosService = Depends(get_service)):
+    return {"data": service.top_clientes(limit=limit)}
+
+
 @router.post("", response_model=PedidoDetalleOut)
 def crear_pedido(body: PedidoCreateIn, service: PedidosService = Depends(get_service)):
     return service.crear(body)

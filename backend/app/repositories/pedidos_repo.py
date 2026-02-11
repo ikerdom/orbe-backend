@@ -198,3 +198,31 @@ class PedidosRepository:
             return res.data or []
         except Exception:
             return []
+
+    def top_clientes(self, limit: int = 5) -> List[dict]:
+        counts: dict[int, dict] = {}
+        page_size = 1000
+        page = 0
+        while True:
+            start = page * page_size
+            end = start + page_size - 1
+            res = (
+                self.supabase.table("pedido")
+                .select("clienteid, cliente")
+                .range(start, end)
+                .execute()
+            )
+            rows = res.data or []
+            if not rows:
+                break
+            for r in rows:
+                cid = r.get("clienteid")
+                if not cid:
+                    continue
+                if cid not in counts:
+                    label = r.get("cliente") or str(cid)
+                    counts[cid] = {"clienteid": cid, "label": label, "count": 0}
+                counts[cid]["count"] += 1
+            page += 1
+        top = sorted(counts.values(), key=lambda x: x["count"], reverse=True)
+        return top[: max(1, int(limit))]

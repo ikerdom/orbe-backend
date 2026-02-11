@@ -205,6 +205,9 @@ class PedidosService:
         payload = data.dict(exclude_none=True)
         return self.repo.crear_incidencia(pedidoid, payload)
 
+    def top_clientes(self, limit: int = 5) -> list[dict]:
+        return self.repo.top_clientes(limit=limit)
+
     # -----------------------------
     # Catálogos
     # -----------------------------
