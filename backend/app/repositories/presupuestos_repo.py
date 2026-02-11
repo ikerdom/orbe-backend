@@ -105,8 +105,6 @@ class PresupuestosRepository:
             page += 1
         top = sorted(counts.values(), key=lambda x: x["count"], reverse=True)
         return top[: max(1, int(limit))]
-            if getattr(e, "args", None) and isinstance(e.args[0], dict) and e.args[0].get("code") == "PGRST205":
-                return [], 0
 
     # -----------------------------
     # Cabecera
@@ -181,8 +179,10 @@ class PresupuestosRepository:
 
         try:
             return _fetch("presupuesto_id")
+        except APIError as e:
             if getattr(e, "args", None) and isinstance(e.args[0], dict) and e.args[0].get("code") == "PGRST204":
                 return _fetch("presupuestoid")
+            raise
 
     def contar_lineas(self, presupuestoid: int) -> int:
         for table, id_col in [("presupuesto_linea", "presupuesto_id"), ("presupuesto_detalle", "presupuestoid")]:
@@ -194,8 +194,10 @@ class PresupuestosRepository:
                     .execute()
                 )
                 return res.count or 0
+            except APIError as e:
                 if getattr(e, "args", None) and isinstance(e.args[0], dict) and e.args[0].get("code") in ("PGRST204", "PGRST205"):
                     continue
+                raise
         return 0
 
     # -----------------------------
@@ -210,8 +212,10 @@ class PresupuestosRepository:
                 .maybe_single()
                 .execute()
             )
+        except APIError as e:
             if getattr(e, "args", None) and isinstance(e.args[0], dict) and e.args[0].get("code") == "PGRST205":
                 return None
+            raise
         d = res.data or None
         return d.get("presupuesto_estadoid") if d else None
 
