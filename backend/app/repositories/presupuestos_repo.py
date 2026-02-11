@@ -1,4 +1,4 @@
-from postgrest.exceptions import APIError
+﻿from postgrest.exceptions import APIError
 # backend/app/repositories/presupuestos_repo.py
 from datetime import date, datetime
 from typing import Dict, List, Optional, Tuple
@@ -72,10 +72,8 @@ class PresupuestosRepository:
         try:
             res = query.range(start, end).execute()
             return res.data or [], res.count or 0
-        except APIError as e:
             if getattr(e, "args", None) and isinstance(e.args[0], dict) and e.args[0].get("code") == "PGRST205":
                 return [], 0
-            raise
 
     def top_clientes(self, limit: int = 5) -> List[dict]:
         # Agrega en memoria para evitar dependencias de SQL/Views
@@ -105,10 +103,8 @@ class PresupuestosRepository:
             page += 1
         top = sorted(counts.values(), key=lambda x: x["count"], reverse=True)
         return top[: max(1, int(limit))]
-        except APIError as e:
             if getattr(e, "args", None) and isinstance(e.args[0], dict) and e.args[0].get("code") == "PGRST205":
                 return [], 0
-            raise
 
     # -----------------------------
     # Cabecera
@@ -134,7 +130,7 @@ class PresupuestosRepository:
         self.supabase.table("presupuesto").delete().eq("presupuesto_id", presupuestoid).execute()
 
     # -----------------------------
-    # LÍneas
+    # LÃneas
     # -----------------------------
     def listar_lineas(self, presupuestoid: int) -> List[dict]:
         res = (
@@ -183,10 +179,8 @@ class PresupuestosRepository:
 
         try:
             return _fetch("presupuesto_id")
-        except APIError as e:
             if getattr(e, "args", None) and isinstance(e.args[0], dict) and e.args[0].get("code") == "PGRST204":
                 return _fetch("presupuestoid")
-            raise
 
     def contar_lineas(self, presupuestoid: int) -> int:
         for table, id_col in [("presupuesto_linea", "presupuesto_id"), ("presupuesto_detalle", "presupuestoid")]:
@@ -198,10 +192,8 @@ class PresupuestosRepository:
                     .execute()
                 )
                 return res.count or 0
-            except APIError as e:
                 if getattr(e, "args", None) and isinstance(e.args[0], dict) and e.args[0].get("code") in ("PGRST204", "PGRST205"):
                     continue
-                raise
         return 0
 
     # -----------------------------
@@ -216,10 +208,8 @@ class PresupuestosRepository:
                 .maybe_single()
                 .execute()
             )
-        except APIError as e:
             if getattr(e, "args", None) and isinstance(e.args[0], dict) and e.args[0].get("code") == "PGRST205":
                 return None
-            raise
         d = res.data or None
         return d.get("presupuesto_estadoid") if d else None
 
