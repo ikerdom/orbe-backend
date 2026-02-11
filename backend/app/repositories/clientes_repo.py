@@ -10,6 +10,11 @@ class ClientesRepository:
     def get_clientes(
         self,
         q: Optional[str],
+        razonsocial: Optional[str],
+        nombre: Optional[str],
+        cifdni: Optional[str],
+        codigocuenta: Optional[str],
+        codigoclienteoproveedor: Optional[str],
         tipo: Optional[str],
         idgrupo: Optional[int],
         page: int,
@@ -36,6 +41,23 @@ class ClientesRepository:
                 "razonsocial.ilike.%{0}%,nombre.ilike.%{0}%,cifdni.ilike.%{0}%,"
                 "codigocuenta.ilike.%{0}%,codigoclienteoproveedor.ilike.%{0}%".format(safe_q)
             )
+
+        if razonsocial:
+            query = query.ilike("razonsocial", f"%{razonsocial}%")
+        if nombre:
+            query = query.ilike("nombre", f"%{nombre}%")
+        if codigocuenta:
+            query = query.ilike("codigocuenta", f"%{codigocuenta}%")
+        if codigoclienteoproveedor:
+            query = query.ilike("codigoclienteoproveedor", f"%{codigoclienteoproveedor}%")
+        if cifdni:
+            cif_norm = "".join(ch for ch in cifdni.upper() if ch.isalnum())
+            if cif_norm and cif_norm != cifdni:
+                query = query.or_(
+                    f"cifdni.ilike.%{cifdni}%,cif_normalizado.ilike.%{cif_norm}%"
+                )
+            else:
+                query = query.ilike("cifdni", f"%{cifdni}%")
 
         if tipo:
             query = query.eq("clienteoproveedor", tipo)

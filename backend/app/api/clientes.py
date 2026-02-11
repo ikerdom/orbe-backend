@@ -21,6 +21,11 @@ def get_clientes_service(supabase=Depends(get_supabase)) -> ClientesService:
 @router.get("", response_model=ClienteListResponse)
 def listar_clientes(
     q: Optional[str] = Query(None),
+    razonsocial: Optional[str] = Query(None),
+    nombre: Optional[str] = Query(None),
+    cifdni: Optional[str] = Query(None),
+    codigocuenta: Optional[str] = Query(None),
+    codigoclienteoproveedor: Optional[str] = Query(None),
     tipo: Optional[str] = Query(None),
     idgrupo: Optional[int] = Query(None),
     page: int = Query(1, ge=1),
@@ -31,6 +36,11 @@ def listar_clientes(
 ):
     return service.listar_clientes(
         q=q,
+        razonsocial=razonsocial,
+        nombre=nombre,
+        cifdni=cifdni,
+        codigocuenta=codigocuenta,
+        codigoclienteoproveedor=codigoclienteoproveedor,
         tipo=tipo,
         idgrupo=idgrupo,
         page=page,

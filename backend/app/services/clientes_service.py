@@ -20,6 +20,11 @@ class ClientesService:
     def listar_clientes(
         self,
         q: Optional[str],
+        razonsocial: Optional[str],
+        nombre: Optional[str],
+        cifdni: Optional[str],
+        codigocuenta: Optional[str],
+        codigoclienteoproveedor: Optional[str],
         tipo: Optional[str],
         idgrupo: Optional[int],
         page: int,
@@ -29,6 +34,11 @@ class ClientesService:
     ) -> ClienteListResponse:
         clientes_raw, total = self.repo.get_clientes(
             q=q,
+            razonsocial=razonsocial,
+            nombre=nombre,
+            cifdni=cifdni,
+            codigocuenta=codigocuenta,
+            codigoclienteoproveedor=codigoclienteoproveedor,
             tipo=tipo,
             idgrupo=idgrupo,
             page=page,
