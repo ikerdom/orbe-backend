@@ -1,5 +1,6 @@
 # backend/app/repositories/crm_repo.py
 from typing import List, Optional
+from postgrest.exceptions import APIError
 
 
 class CrmRepository:
@@ -7,14 +8,15 @@ class CrmRepository:
         self.supabase = supabase
 
     def listar(self, filtros: dict) -> List[dict]:
-        q = self.supabase.table("crm_actuacion").select(
-            "crm_actuacionid,titulo,descripcion,observaciones,resultado,hora_inicio,hora_fin,duracion_segundos,"
+        select_full = (
+            "crm_actuacionid,titulo,descripcion,observaciones,hora_inicio,hora_fin,duracion_segundos,"
             "fecha_accion,fecha_vencimiento,"
             "requiere_seguimiento,fecha_recordatorio,clienteid,trabajador_creadorid,"
             "trabajador_asignadoid,crm_actuacion_estadoid,crm_actuacion_tipoid,"
             "crm_actuacion_estado(estado),crm_actuacion_tipo(tipo),"
             "cliente (clienteid, razonsocial, nombre)"
         )
+        q = self.supabase.table("crm_actuacion").select(select_full)
         if filtros.get("trabajador_asignadoid"):
             q = q.eq("trabajador_asignadoid", filtros["trabajador_asignadoid"])
         if filtros.get("clienteid"):
@@ -24,7 +26,19 @@ class CrmRepository:
         if filtros.get("crm_actuacion_tipoid"):
             q = q.eq("crm_actuacion_tipoid", filtros["crm_actuacion_tipoid"])
         q = q.order("fecha_vencimiento", desc=False)
-        res = q.execute()
+        try:
+            res = q.execute()
+        except APIError as e:
+            if getattr(e, "args", None) and isinstance(e.args[0], dict) and e.args[0].get("code") == "PGRST204":
+                # fallback sin relaciones por si faltan FK/columnas
+                q = self.supabase.table("crm_actuacion").select(
+                    "crm_actuacionid,titulo,descripcion,observaciones,hora_inicio,hora_fin,duracion_segundos,"
+                    "fecha_accion,fecha_vencimiento,requiere_seguimiento,fecha_recordatorio,clienteid,"
+                    "trabajador_creadorid,trabajador_asignadoid,crm_actuacion_estadoid,crm_actuacion_tipoid"
+                )
+                res = q.execute()
+            else:
+                raise
         rows = res.data or []
         if filtros.get("buscar"):
             s = filtros["buscar"].lower()
@@ -52,20 +66,36 @@ class CrmRepository:
         return res.data or {}
 
     def obtener(self, accionid: int) -> Optional[dict]:
-        res = (
-            self.supabase.table("crm_actuacion")
-            .select(
-                "crm_actuacionid,titulo,descripcion,observaciones,resultado,hora_inicio,hora_fin,duracion_segundos,"
-                "fecha_accion,fecha_vencimiento,"
-                "requiere_seguimiento,fecha_recordatorio,clienteid,trabajador_creadorid,"
-                "trabajador_asignadoid,crm_actuacion_estadoid,crm_actuacion_tipoid,"
-                "crm_actuacion_estado(estado),crm_actuacion_tipo(tipo),"
-                "cliente (clienteid, razonsocial, nombre)"
+        try:
+            res = (
+                self.supabase.table("crm_actuacion")
+                .select(
+                    "crm_actuacionid,titulo,descripcion,observaciones,hora_inicio,hora_fin,duracion_segundos,"
+                    "fecha_accion,fecha_vencimiento,"
+                    "requiere_seguimiento,fecha_recordatorio,clienteid,trabajador_creadorid,"
+                    "trabajador_asignadoid,crm_actuacion_estadoid,crm_actuacion_tipoid,"
+                    "crm_actuacion_estado(estado),crm_actuacion_tipo(tipo),"
+                    "cliente (clienteid, razonsocial, nombre)"
+                )
+                .eq("crm_actuacionid", accionid)
+                .maybe_single()
+                .execute()
             )
-            .eq("crm_actuacionid", accionid)
-            .maybe_single()
-            .execute()
-        )
+        except APIError as e:
+            if getattr(e, "args", None) and isinstance(e.args[0], dict) and e.args[0].get("code") == "PGRST204":
+                res = (
+                    self.supabase.table("crm_actuacion")
+                    .select(
+                        "crm_actuacionid,titulo,descripcion,observaciones,hora_inicio,hora_fin,duracion_segundos,"
+                        "fecha_accion,fecha_vencimiento,requiere_seguimiento,fecha_recordatorio,clienteid,"
+                        "trabajador_creadorid,trabajador_asignadoid,crm_actuacion_estadoid,crm_actuacion_tipoid"
+                    )
+                    .eq("crm_actuacionid", accionid)
+                    .maybe_single()
+                    .execute()
+                )
+            else:
+                raise
         row = res.data or None
         if row:
             row["estado"] = (row.get("crm_actuacion_estado") or {}).get("estado")
